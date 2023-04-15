@@ -1,0 +1,61 @@
+# Put in your username and password
+$ESB_USERNAME = ''
+$ESB_PASSWORD = ''
+
+# Add sufixes of teh the enines you want to start from: C:\ProgramData\BlueStacks_nxt\Engine
+$BOTS_TO_LAUNCH = ("","_1")
+
+# Config Files (default locations)
+$BLUESTACKS_CONFIG = "C:\programdata\BlueStacks_nxt\bluestacks.conf"
+$ESB_CONFIG = "C:\ESB-TKR\user_profile.json"
+
+# ESB Profile to use. This script isn't smart and will update the first port it encounters in the user_profile.json file, the profiles are sorted alphabetically.
+$ESB_PROFILE = "Default"
+
+# Launch BS X
+Start-Process "C:\Program Files (x86)\BlueStacks X\BlueStacks X.exe"
+
+# Launch bots 
+for ($i = 0;$i -lt $BOTS_TO_LAUNCH.Count;$i++) {
+    Start-Process "C:\Program Files\BlueStacks_nxt\HD-Player.exe" -ArgumentList "--instance Nougat64$($BOTS_TO_LAUNCH[$i]) --hidden --cmd launchAppWithBsx --package `"com.topgamesinc.evony`"" -Verb RunAs
+    write-host $i
+}
+
+# Stop BS X
+Start-Process taskkill -ArgumentList '/IM "BlueStacks X.exe" /F' -Verb RunAs
+
+Start-Sleep -Seconds 5
+
+$bluestacks = Get-Content -Raw $BLUESTACKS_CONFIG
+$esb = Get-Content -Raw $ESB_CONFIG
+
+# Find 5 digit port number
+# Find 5 digit port number
+# Find 5 digit port number
+function get-match([Array]$inputArray,[string]$prefix="") {
+    $regex = "`"[0-9][0-9][0-9][0-9][0-9]`""
+    if($prefix -ne "") {$regex = "$($prefix)"+$regex}
+    return [regex]::Matches($inputArray, $regex)
+}
+
+$blue_match = get-match $bluestacks "port="
+$esb_match  = get-match $esb
+$bot_count  = $blue_match.Count
+($blue_match | select -Property Value).Value
+
+for($i=0;$i -lt $bot_count;$i++) {
+    $esb = $esb.Replace($esb_match[$i].Value,($blue_match[$i].Value).Remove(0,5))   
+}
+
+$Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
+[System.IO.File]::WriteAllLines($esbConfig, $esb, $Utf8NoBomEncoding)
+
+Start-Sleep 5
+
+# Launch ESB-TKR with the profile
+Set-Location C:\ESB-TKR
+Start-Process C:\ESB-TKR\main.exe -ArgumentList "--username $($ESB_USERNAME) --password $($ESB_PASSWORD) --profile $($ESB_PROFILE)" -WorkingDirectory C:\ESB-TKR
+
+# Use this for troubleshooting
+#Invoke-Expression "C:\ESB-TKR\main.exe --username $($ESB_USERNAME) --password $($ESB_PASSWORD) --profile Default"
+
